@@ -358,33 +358,6 @@ set       toc,title
    <xsl:value-of select="'blurb'"/>
 </xsl:template>
 
-<xsl:template match="preface|chapter|appendix|article" mode="toc">
-  <xsl:param name="toc-context" select="."/>
-
-  <!--
-      When boost.noexpand.chapter.toc is set to 1, then the TOC for
-      chapters is only one level deep (ie toc.max.depth has no effect)
-      and nested sections within chapters are not shown.  TOC's and LOC's 
-      at other levels are not effected and respond to toc.max.depth as normal.
-  -->
-  <xsl:choose>
-    <xsl:when test="local-name($toc-context) = 'book' and $boost.noexpand.chapter.toc = 1">
-      <xsl:call-template name="subtoc">
-        <xsl:with-param name="toc-context" select="$toc-context"/>
-        <xsl:with-param name="nodes" select="foo"/>
-      </xsl:call-template>
-    </xsl:when>
-    <xsl:otherwise>
-      <xsl:call-template name="subtoc">
-        <xsl:with-param name="toc-context" select="$toc-context"/>
-        <xsl:with-param name="nodes"
-              select="section|sect1|glossary|bibliography|index
-                     |bridgehead[$bridgehead.in.toc != 0]"/>
-      </xsl:call-template>
-    </xsl:otherwise>
-  </xsl:choose>
-</xsl:template>
-
 </xsl:stylesheet>
 
 
