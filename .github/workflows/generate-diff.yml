@@ -40,6 +40,7 @@ jobs:
           git submodule update --init tools/boostdep
           python tools/boostdep/depinst/depinst.py tools/boostdep
           ./bootstrap.sh
+          echo "B2=$PWD/b2" >> $GITHUB_ENV
 
       - name: Create user-config.jam
         run: |
@@ -59,43 +60,43 @@ jobs:
           echo REF: $REF
           TARGET_BRANCH=develop && [ "$REF" = "master" ] && TARGET_BRANCH=master || true
           mkdir -p snapshot
+
+          # Build boostbook/doc using new changes
           cd snapshot
           curl -L --retry 5 -o "${GIT_MODULE}-${GITHUB_SHA}.tar.gz" "https://github.com/${GITHUB_REPOSITORY}/archive/${GITHUB_SHA}.tar.gz"
           tar -xf "${GIT_MODULE}-${GITHUB_SHA}.tar.gz"
-          if [ ! -d "${GIT_MODULE}-${GITHUB_SHA}" ]
-          then
-              echo "Module snapshot does not contain the module directory ${GIT_MODULE}-${GITHUB_SHA}:"
-              ls -la
-              exit 1
-          fi
           rm -f "${GIT_MODULE}-${GITHUB_SHA}.tar.gz"
           cd ../boost-root
-          rm -rf "tools/boostbook"
-          mv -f "../snapshot/${GIT_MODULE}-${GITHUB_SHA}" "tools/boostbook"
+          rm -rf tools/boostbook
+          mv -f "../snapshot/${GIT_MODULE}-${GITHUB_SHA}" tools/boostbook
           cd tools/boostbook/doc
-          ../../../b2 -a
-          mv ./html /tmp
+          $B2
+          mv ./html ~/new-html
+
+          # Build boostbook/doc using target branch
           cd ../../../../snapshot
           curl -L --retry 5 -o "${GIT_MODULE}-${TARGET_BRANCH}.tar.gz" "https://github.com/${GITHUB_REPOSITORY}/archive/${TARGET_BRANCH}.tar.gz"
           tar -xf "${GIT_MODULE}-${TARGET_BRANCH}.tar.gz"
           rm -f "${GIT_MODULE}-${TARGET_BRANCH}.tar.gz"
           cd ../boost-root
-          rm -rf "tools/boostbook"
-          mv -f "../snapshot/${GIT_MODULE}-${TARGET_BRANCH}" "tools/boostbook"
+          rm -rf tools/boostbook
+          mv -f "../snapshot/${GIT_MODULE}-${TARGET_BRANCH}" tools/boostbook
           cd tools/boostbook/doc
-          ../../../b2 -a
+          $B2
+
+          # Generate diff.html for boostbook/doc/html
           git init
           git config user.name "Your Name"
           git config user.email "you@example.com"
           git add -f ./html
-          git commit -m "${TARGET_BRANCH}"
+          git commit -m "before"
           rm -r ./html
-          mv /tmp/html ./html
+          mv ~/new-html ./html
           git add -f ./html
-          git commit -m "current"
-          diff2html -t "diff with ${TARGET_BRANCH}" --cs light -s side -F /tmp/diff.html -- -M HEAD~1
+          git commit -m "after"
+          diff2html -t "diff with ${TARGET_BRANCH}" --cs light -s side -F ~/diff.html -- -M HEAD~1
 
       - uses: actions/upload-artifact@v3
         with:
           name: diff
-          path: /tmp/diff.html
+          path: ~/diff.html
